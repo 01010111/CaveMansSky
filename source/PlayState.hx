@@ -15,6 +15,7 @@ import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.group.FlxSpriteGroup;
 import flixel.input.keyboard.FlxKey;
 import flixel.math.FlxPoint;
+import flixel.math.FlxRandom;
 import flixel.math.FlxRect;
 import flixel.text.FlxText;
 import flixel.tweens.FlxEase;
@@ -53,11 +54,16 @@ class PlayState extends FlxState
 	
 	var dt:FlxText;
 	
+	var points:Int = 0;
+	var pt:FlxText;
+	
 	override public function create():Void
 	{
 		i = this;
 		
+		#if !flash
 		FlxG.mouse.visible = false;
+		#end
 		bgColor = 0xff5fcde4;
 		ui = new UILayer();
 		explosion_layer = new FlxGroup();
@@ -102,6 +108,15 @@ class PlayState extends FlxState
 		dt = new FlxText(10, 10);
 		add(dt);
 		
+		pt = new FlxText(0, FlxG.height - 24, FlxG.width - 20);
+		pt.setFormat(null, 8, 0xffffff, FlxTextAlign.RIGHT, FlxTextBorderStyle.OUTLINE, 0xff103060);
+		pt.origin.set(FlxG.width - 90, 6);
+		add(pt);
+		
+		pt.angle = -4;
+		FlxTween.tween(pt.scale, {x:1.2, y:1.2}, 1, {type:FlxTween.PINGPONG, ease:FlxEase.sineInOut});
+		FlxTween.tween(pt, {angle:4}, 1.2, {type:FlxTween.PINGPONG, ease:FlxEase.sineInOut});
+		
 		//new FlxTimer().start(4, add_ufo, 0);
 	}
 	
@@ -137,6 +152,13 @@ class PlayState extends FlxState
 		if (FlxG.keys.justPressed.R)
 			FlxG.resetState();
 		#end
+		
+		pt.text = "" + points;
+		
+		pt.color = new FlxRandom().color();
+		
+		if (FlxG.keys.justPressed.P)
+			pt.visible = !pt.visible;
 	}
 	
 	function hit_mine(_m:Mine, _c:CaveMan):Void
@@ -213,6 +235,12 @@ class PlayState extends FlxState
 					ZMath.randomRangeInt(3, 7)
 				);
 			}
+		}
+		
+		for (mine in mines)
+		{
+			if (!caveman.in_danger && caveman.exists)
+				points += Math.floor(ZMath.clamp(64 - ZMath.distance(mine.getMidpoint(), caveman.getMidpoint()), 0, 64));
 		}
 	}
 	
@@ -879,7 +907,7 @@ class Cursor extends FlxSpriteGroup
 	override public function update(elapsed:Float):Void 
 	{
 		angloni = ZMath.toRelativeAngle(angloni);
-		origino = FlxG.mouse.getPosition();
+		origino = FlxG.mouse.getScreenPosition();
 		
 		for (i in 0...members.length)
 		{
@@ -924,8 +952,8 @@ class UILayer extends FlxGroup
 class Mines extends FlxTypedGroup<Mine>
 {
 	
-	var timer:Int = 300;
-	var timer_amt:Int = 800;
+	var timer:Int = 250;
+	var timer_amt:Int = 600;
 	
 	public function new()
 	{
@@ -946,7 +974,7 @@ class Mines extends FlxTypedGroup<Mine>
 		{
 			fire();
 			timer = timer_amt;
-			timer_amt = Math.floor(ZMath.clamp(timer_amt - 10, 60, 900));
+			timer_amt = Math.floor(ZMath.clamp(timer_amt - 50, 100, 900));
 		}
 		else if (timer > 0)
 			timer--;
@@ -962,7 +990,7 @@ class Mine extends FlxSprite
 	
 	public function new()
 	{
-		super();
+		super(-64);
 		loadGraphic("assets/images/mine.png", true, 16, 16);
 		animation.add("play", [0, 1, 2, 3, 4, 5, 6, 7], 15);
 		exists = false;
